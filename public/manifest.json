@@ -1,0 +1,14 @@
+{
+    "name": "CIHANFLIX",
+    "short_name": "CIHANFLIX",
+    "icons": [
+      {
+        "src": "favicon.ico",
+        "sizes": "192x192",
+        "type": "image/x-icon"
+      }
+    ],
+    "start_url": ".",
+    "display": "standalone"
+  }
+  
