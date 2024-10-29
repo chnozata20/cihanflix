@@ -8,7 +8,7 @@ const clickSound = new Howl({
   src: ['/starterSound.wav'],
 });
 
-export default function NotFound() {
+export default function Home() {
   const navigate = useNavigate();
   const [backgroundImages, setBackgroundImages] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -41,9 +41,9 @@ export default function NotFound() {
     return () => clearInterval(interval);
   }, [backgroundImages]);
 
-  const handleBackHome = () => {
+  const handleSelection = (choice) => {
     clickSound.play();
-    navigate('/');
+    navigate(`/${choice}`);
   };
 
   return (
@@ -91,23 +91,34 @@ export default function NotFound() {
       <div className="relative flex items-center justify-center h-full bg-black bg-opacity-50 text-white text-center">
         <div>
           <motion.h1
-            className="text-6xl font-extrabold mb-8 text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-yellow-500 animate-pulse"
+            className="text-6xl font-extrabold mb-8 text-transparent bg-clip-text bg-gradient-to-r from-yellow-500 via-pink-500 to-purple-500 animate-pulse"
             initial={{ scale: 0.8 }}
             animate={{ scale: 1 }}
             transition={{ duration: 1.5 }}
           >
-            PAGE NOT FOUND
+            Welcome to CIHANFLIX!
           </motion.h1>
-          <p className="text-2xl mb-6">Oops! Looks like you are lost.</p>
-          <motion.button
-            onClick={handleBackHome}
-            whileHover={{ scale: 1.1, boxShadow: '0px 0px 8px rgba(255, 215, 0, 1)' }}
-            whileTap={{ scale: 0.95 }}
-            className="relative px-8 py-4 text-lg font-semibold bg-gradient-to-br from-yellow-500 to-red-500 rounded-full shadow-lg border-2 border-yellow-400 text-white hover:text-yellow-100 transition-transform transform"
-          >
-            Go Back Home
-            <span className="absolute inset-0 rounded-full bg-yellow-400 opacity-20 blur-lg"></span>
-          </motion.button>
+          <p className="text-2xl mb-6">Choose your journey:</p>
+          <div className="flex gap-8 justify-center">
+            <motion.button
+              onClick={() => handleSelection('movies')}
+              whileHover={{ scale: 1.1, boxShadow: '0px 0px 8px rgba(255, 215, 0, 1)' }}
+              whileTap={{ scale: 0.95 }}
+              className="relative px-8 py-4 text-lg font-semibold bg-gradient-to-br from-yellow-500 to-red-500 rounded-full shadow-lg border-2 border-yellow-400 text-white hover:text-yellow-100 transition-transform transform"
+            >
+              Movies
+              <span className="absolute inset-0 rounded-full bg-yellow-400 opacity-20 blur-lg"></span>
+            </motion.button>
+            <motion.button
+              onClick={() => handleSelection('tvshows')}
+              whileHover={{ scale: 1.1, boxShadow: '0px 0px 8px rgba(50, 205, 50, 1)' }}
+              whileTap={{ scale: 0.95 }}
+              className="relative px-8 py-4 text-lg font-semibold bg-gradient-to-br from-green-500 to-blue-500 rounded-full shadow-lg border-2 border-green-400 text-white hover:text-green-100 transition-transform transform"
+            >
+              TV Shows
+              <span className="absolute inset-0 rounded-full bg-green-400 opacity-20 blur-lg"></span>
+            </motion.button>
+          </div>
         </div>
       </div>
     </div>
