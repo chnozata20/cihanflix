@@ -1,4 +1,4 @@
-import { createContext, useState, useEffect } from "react";
+import { createContext, useState, useEffect, useMemo } from "react";
 import {
     fetchPopularMovies,
     fetchTopRatedMovies,
@@ -8,7 +8,8 @@ import {
     fetchMovieDetails,
     fetchTVShowDetails,
     fetchMovieCredits,
-    fetchTVCredits
+    fetchTVCredits,
+    fetchGenres,
 } from "../services/movieService";
 
 export const MovieContext = createContext();
@@ -17,8 +18,7 @@ export const MovieContextProvider = ({ children }) => {
     const [selectedMovie, setSelectedMovie] = useState(null);
     const [selectedTVShow, setSelectedTVShow] = useState(null);
     const [favourites, setFavourites] = useState(() => {
-        // Local storage'dan favorileri yükle
-        const storedFavourites = localStorage.getItem('favourites');
+        const storedFavourites = localStorage.getItem("favourites");
         return storedFavourites ? JSON.parse(storedFavourites) : [];
     });
     const [movies, setMovies] = useState([]);
@@ -29,82 +29,83 @@ export const MovieContextProvider = ({ children }) => {
     const [selectedCategory, setSelectedCategory] = useState("popular");
     const [backgroundImage, setBackgroundImage] = useState("");
     const [cast, setCast] = useState([]);
+    const [filter, setFilter] = useState("");
+    const [sortOrder, setSortOrder] = useState("asc");
+    const [genresMap, setGenresMap] = useState({});
+    const [genres, setGenres] = useState([]);
 
-    // Yerel depolamaya favorileri kaydet
+    // Store favourites in local storage
     useEffect(() => {
-        localStorage.setItem('favourites', JSON.stringify(favourites));
+        localStorage.setItem("favourites", JSON.stringify(favourites));
     }, [favourites]);
 
-    const loadMovies = async () => {
+    // Load genres from the API
+    const loadGenres = async () => {
         try {
-            const popularMovies = await fetchPopularMovies();
+            const fetchedGenres = await fetchGenres();
+            const genreMap = Object.fromEntries(
+                fetchedGenres.map((genre) => [genre.id, genre.name])
+            );
+            setGenresMap(genreMap);
+            setGenres(fetchedGenres);
+        } catch (error) {
+            console.error("Failed to fetch genres:", error);
+        }
+    };
+
+    // Load movies and TV shows
+    const loadMoviesAndShows = async () => {
+        try {
+            const [popularMovies, topRated, popularTVShows, topRatedTV] =
+                await Promise.all([
+                    fetchPopularMovies(),
+                    fetchTopRatedMovies(),
+                    fetchPopularTVShows(),
+                    fetchTopRatedTVShows(),
+                ]);
             setMovies(popularMovies);
-        } catch (error) {
-            console.error("Failed to fetch popular movies:", error);
-        }
-    };
-
-    const loadTopRatedMovies = async () => {
-        try {
-            const topRated = await fetchTopRatedMovies();
             setTopRatedMovies(topRated);
-        } catch (error) {
-            console.error("Failed to fetch top-rated movies:", error);
-        }
-    };
-
-    const loadTVShows = async () => {
-        try {
-            const popularTVShows = await fetchPopularTVShows();
             setTVShows(popularTVShows);
+            setTopRatedTVShows(topRatedTV);
         } catch (error) {
-            console.error("Failed to fetch popular TV shows:", error);
+            console.error("Failed to load movies or TV shows:", error);
         }
     };
 
-    const loadTopRatedTVShows = async () => {
-        try {
-            const topRated = await fetchTopRatedTVShows();
-            setTopRatedTVShows(topRated);
-        } catch (error) {
-            console.error("Failed to fetch top-rated TV shows:", error);
-        }
-    };
-
+    // Load movie details
     const loadMovieDetails = async (movieId) => {
         try {
             const movie = await fetchMovieDetails(movieId);
             const credits = await fetchMovieCredits(movieId);
             setCast(credits.cast);
             setSelectedMovie(movie);
-            
-            return movie;
         } catch (error) {
             console.error("Failed to load movie details:", error);
         }
     };
 
+    // Load TV show details
     const loadTVShowDetails = async (tvShowId) => {
         try {
             const tvShow = await fetchTVShowDetails(tvShowId);
             const credits = await fetchTVCredits(tvShowId);
             setCast(credits.cast);
             setSelectedTVShow(tvShow);
-
-            return tvShow;
         } catch (error) {
             console.error("Failed to load TV show details:", error);
         }
     };
 
-    const toggleFavourite = (movieOrShow) => {
+    // Toggle favourite
+    const toggleFavourite = (item) => {
         setFavourites((prev) =>
-            prev.some((fav) => fav.id === movieOrShow.id)
-                ? prev.filter((fav) => fav.id !== movieOrShow.id)
-                : [...prev, movieOrShow]
+            prev.some((fav) => fav.id === item.id)
+                ? prev.filter((fav) => fav.id !== item.id)
+                : [...prev, item]
         );
     };
 
+    // Search for movies or TV shows
     const handleSearch = async (query) => {
         if (query.length >= 3) {
             try {
@@ -119,34 +120,72 @@ export const MovieContextProvider = ({ children }) => {
         }
     };
 
+    // Change selected category
     const handleCategoryChange = (category) => {
         setSelectedCategory(category);
     };
 
+    // Fetch background image
     const fetchBackgroundImage = async () => {
-        const popularMovies = await fetchPopularMovies();
-        const randomMovie = popularMovies[Math.floor(Math.random() * popularMovies.length)];
-        setBackgroundImage(`https://image.tmdb.org/t/p/original${randomMovie.backdrop_path}`);
+        try {
+            const popularMovies = await fetchPopularMovies();
+            const randomMovie =
+                popularMovies[Math.floor(Math.random() * popularMovies.length)];
+            setBackgroundImage(
+                `https://image.tmdb.org/t/p/original${randomMovie.backdrop_path}`
+            );
+        } catch (error) {
+            console.error("Failed to fetch background image:", error);
+        }
     };
 
+    // Load all data on mount
     useEffect(() => {
-        loadMovies();
-        loadTopRatedMovies();
-        loadTVShows();
-        loadTopRatedTVShows();
+        loadGenres();
+        loadMoviesAndShows();
     }, []);
 
-    const displayedMovies = searchResults.length > 0 
-        ? searchResults 
-        : selectedCategory === "popular" 
-            ? movies 
+    // Displayed movies and TV shows
+    const displayedMovies =
+        searchResults.length > 0
+            ? searchResults
+            : selectedCategory === "popular"
+            ? movies
             : topRatedMovies;
-
-    const displayedTVShows = searchResults.length > 0 
-        ? searchResults 
-        : selectedCategory === "popular" 
-            ? tvShows 
+    const displayedTVShows =
+        searchResults.length > 0
+            ? searchResults
+            : selectedCategory === "popular"
+            ? tvShows
             : topRatedTVShows;
+
+    // Filter and sort movies
+    const filteredAndSortedMovies = useMemo(() => {
+        let filteredMovies = displayedMovies.filter((movie) =>
+            filter ? movie.genre_ids.includes(Number(filter)) : true
+        );
+        return filteredMovies
+            .filter((movie) => movie.title) // Ensure title exists
+            .sort((a, b) =>
+                sortOrder === "asc"
+                    ? a.title.localeCompare(b.title)
+                    : b.title.localeCompare(a.title)
+            );
+    }, [displayedMovies, filter, sortOrder]);
+
+    // Filter and sort TV shows
+    const filteredAndSortedTVShows = useMemo(() => {
+        let filteredTVShows = displayedTVShows.filter((tvShow) =>
+            filter ? tvShow.genre_ids.includes(Number(filter)) : true
+        );
+        return filteredTVShows
+            .filter((tvShow) => tvShow.name) // Ensure name exists
+            .sort((a, b) =>
+                sortOrder === "asc"
+                    ? a.name.localeCompare(b.name)
+                    : b.name.localeCompare(a.name)
+            );
+    }, [displayedTVShows, filter, sortOrder]);
 
     return (
         <MovieContext.Provider
@@ -164,7 +203,12 @@ export const MovieContextProvider = ({ children }) => {
                 selectedCategory,
                 backgroundImage,
                 fetchBackgroundImage,
-                cast
+                cast,
+                filteredAndSortedMovies,
+                filteredAndSortedTVShows,
+                setFilter,
+                setSortOrder,
+                genres,
             }}
         >
             {children}

@@ -75,3 +75,27 @@ export const fetchTVCredits = async (tvShowId) => {
   const response = await apiClient.get(`/tv/${tvShowId}/credits`);
   return response.data;
 };
+
+// Fetch genres for both movies and TV shows
+export const fetchGenres = async () => {
+  try {
+    // Fetch movie genres
+    const movieGenresResponse = await apiClient.get('/genre/movie/list');
+    const movieGenres = movieGenresResponse.data.genres;
+
+    // Fetch TV genres
+    const tvGenresResponse = await apiClient.get('/genre/tv/list');
+    const tvGenres = tvGenresResponse.data.genres;
+
+    // Combine both genres and remove duplicates if any
+    const allGenres = [...movieGenres, ...tvGenres];
+    const uniqueGenres = Array.from(
+      new Map(allGenres.map(genre => [genre.id, genre])).values()
+    );
+
+    return uniqueGenres;
+  } catch (error) {
+    console.error("Failed to fetch genres:", error);
+    return [];
+  }
+};
